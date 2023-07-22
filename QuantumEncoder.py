@@ -4,6 +4,8 @@ from qiskit.visualization import plot_histogram
 
 import matplotlib.pyplot as plt
 
+import numpy as np
+
 
 class QuantumEncoder:
     def __init__(self, features, feature_map):
@@ -15,18 +17,27 @@ class QuantumEncoder:
         self.circuit = QuantumCircuit(self.n_features)
 
     # plots a scatter matrix highlighting a previously selected data point
-    def plot_data_points(self, random_point):
+    def plot_data_points(self, random_point, labels):
         fig, axs = plt.subplots(self.n_features, self.n_features)
         fig.set_figwidth(3 * self.n_features)
         fig.set_figheight(3 * self.n_features)
         plt.rcParams.update({'font.size': 22})
-        feature_names = [0, 1, 2, 3]
+        feature_names = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']
         for i in range(self.n_features):
             for j in range(self.n_features):
                 if i == j:
                     axs[i][j].hist(self.features[:, j])
                 else:
-                    axs[i][j].scatter(self.features[:, j], self.features[:, i])
+                    # axs[i][j].scatter(self.features[:, j], self.features[:, i])
+                    axs[i][j].scatter(self.features[np.where(labels == 0), j],
+                                      self.features[np.where(labels == 0), i],
+                                      color='tab:blue')
+                    axs[i][j].scatter(self.features[np.where(labels == 1), j],
+                                      self.features[np.where(labels == 1), i],
+                                      color='tab:orange')
+                    axs[i][j].scatter(self.features[np.where(labels == 2), j],
+                                      self.features[np.where(labels == 2), i],
+                                      color='tab:green')
                     axs[i][j].scatter(self.features[:, j][random_point],
                                       self.features[:, i][random_point],
                                       color='r')

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-from qiskit.algorithms.optimizers import SPSA
-from qiskit.circuit.library import ZZFeatureMap, TwoLocal, PauliFeatureMap
+from qiskit.algorithms.optimizers import SPSA, QNSPSA, GradientDescent, ADAM
+from qiskit.circuit.library import ZZFeatureMap, TwoLocal, PauliFeatureMap, NLocal
 from qiskit.visualization import plot_histogram
 from qiskit_machine_learning.datasets import ad_hoc_data
 from qiskit import Aer, transpile
@@ -11,40 +11,60 @@ from QuantumClassifier import QuantumClassifier
 from OptimizerLog import OptimizerLog
 
 import numpy as np
+import pandas as pd
 
 from sklearn.datasets import make_blobs
 
 
-def make_data(data_type, n_features, n_classes, n_train, n_test):
-    X_train = []
-    X_test = []
-    y_train = []
-    y_test = []
-    if data_type == 'blobs':
-        features, labels = make_blobs(
-            n_samples=n_train + n_test,
-            n_features=n_features,
-            centers=n_classes,
-            center_box=(-1, 1),
-            cluster_std=0.1)
+# def make_data(data_type, n_features, n_classes, n_train, n_test):
+#     X_train = []
+#     X_test = []
+#     y_train = []
+#     y_test = []
+#     if data_type == 'blobs':
+#         features, labels = make_blobs(
+#             n_samples=n_train + n_test,
+#             n_features=n_features,
+#             centers=n_classes,
+#             center_box=(-1, 1),
+#             cluster_std=0.1)
+#
+#         X_train, X_test, y_train, y_test = train_test_split(features,
+#                                                             labels,
+#                                                             train_size=n_train,
+#                                                             test_size=n_test)
+#
+#     elif data_type == 'ad-hoc':
+#         X_train, y_train, X_test, y_test = (ad_hoc_data(training_size=n_train,
+#                                                         test_size=n_test,
+#                                                         n=n_features,
+#                                                         gap=0.3,
+#                                                         one_hot=False))
+#
+#     elif data_type == 'iris':
+#         data = pd.read_csv('data/Iris.csv')
+#         features = data[['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']]
+#         labels = data['Species'].map({'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2})
+#
+#         # numpy array conversion
+#         features = features.to_numpy()
+#         labels = labels.to_numpy()
+#
+#         X_train, X_test, y_train, y_test = train_test_split(features,
+#                                                             labels,
+#                                                             train_size=n_train,
+#                                                             test_size=n_test,
+#                                                             stratify=labels)
+#
+#
+#     return X_train, X_test, y_train, y_test
 
-        X_train, X_test, y_train, y_test = train_test_split(features, labels, train_size=n_train, test_size=n_test)
 
-    elif data_type == 'ad-hoc':
-        X_train, y_train, X_test, y_test = (ad_hoc_data(training_size=n_train,
-                                                        test_size=n_test,
-                                                        n=n_features,
-                                                        gap=0.3,
-                                                        one_hot=False))
-
-    return X_train, X_test, y_train, y_test
-
-
-n_features = 3  # number of features
-n_classes = 2  # number of classes (clusters)
-n_train = 20  # number of samples in the training set
-n_test = 10  # number of samples in the test set
-data_type = 'blobs'
+n_features = 4  # number of features
+n_classes = 3  # number of classes (clusters)
+n_train = 0.8  # number of samples in the training set
+n_test = 0.2  # number of samples in the test set
+data_type = 'iris'
 
 # Feature map Selection
 feature_map = ZZFeatureMap(n_features, reps=3)
@@ -52,17 +72,36 @@ feature_map = ZZFeatureMap(n_features, reps=3)
 
 # Ansatz selection
 var_circ = TwoLocal(n_features, ['ry', 'rz'], 'cz', reps=3)
+# var_circ = NLocal()
 
 # Optimizer selection
-optimizer = SPSA(maxiter=100, blocking=True)
+log = OptimizerLog()
+# optimizer = SPSA(maxiter=200, blocking=True, callback=log.update)
+optimizer = QNSPSA(QNSPSA.get_fidelity(var_circ), maxiter=200, blocking=True, callback=log.update)
+# optimizer = GradientDescent(maxiter=200, callback=log.update)
+# optimizer = ADAM(maxiter=200)
 
-X_train, X_test, y_train, y_test = make_data(data_type, n_features, n_classes, n_train, n_test)
+
+# X_train, X_test, y_train, y_test = make_data(data_type, n_features, n_classes, n_train, n_test)
+data = pd.read_csv('data/Iris.csv')
+features = data[['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']]
+labels = data['Species'].map({'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2})
+
+# numpy array conversion
+features = features.to_numpy()
+labels = labels.to_numpy()
+
+X_train, X_test, y_train, y_test = train_test_split(features,
+                                                    labels,
+                                                    train_size=n_train,
+                                                    test_size=n_test,
+                                                    stratify=labels)
 
 # a random point to be represented as classical and quantum data
-random_point = np.random.randint(n_test + n_train)
+random_point = np.random.randint(len(data))
 
 qe = QuantumEncoder(np.concatenate((X_train, X_test)), feature_map)
-qe.plot_data_points(random_point)  # saves data points plot
+qe.plot_data_points(random_point, np.concatenate((y_train, y_test)))  # saves data points plot
 qe.make_circuit()  # makes the circuit with the feature map
 qe.get_statevectors(random_point)  # gets the state vectors of a random point
 qe.add_measurement()  # add a measurement to the circuit
