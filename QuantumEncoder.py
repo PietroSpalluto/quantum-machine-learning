@@ -1,115 +1,170 @@
-from qiskit import Aer, transpile
-from qiskit import QuantumCircuit
-from qiskit.visualization import plot_histogram
+from qiskit import Aer, QuantumCircuit
+
+from qiskit.visualization import state_visualization
+from qiskit.visualization.bloch import Bloch
+
+import numpy as np
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
-import numpy as np
 
-
+# Mapper to plot points distribution in the qubit after training
 class QuantumEncoder:
-    def __init__(self, features, feature_map):
+    def __init__(self, features, labels):
         self.features = features
         self.n_samples = features.shape[0]
         self.n_features = features.shape[1]
-        self.feature_map = feature_map
+        self.labels = labels
 
-        self.circuit = QuantumCircuit(self.n_features)
+        self.state_vectors = []
+        self.vectors_data = None
 
-    # plots a scatter matrix highlighting a previously selected data point
-    def plot_data_points(self, random_point, labels):
+        self.figs = []
+        self.axes = []
+        self.spheres = []
+
+    # classical to quantum data encoding
+    def encode(self, circuit, var_params, measured=False):
+        self.state_vectors = []
+        self.vectors_data = []
+
+        # measurement are removed if we need to plot points before the measurement
+        if measured:
+            circuit.remove_final_measurements()
+
+        backend = Aer.get_backend('statevector_simulator')
+        # encodes every data point obtaining a state vector
+        for i in range(len(self.features)):
+            # binding of the parameters (features) to the circuit
+            params = np.concatenate((self.features[i], var_params))
+            encode = circuit.bind_parameters(params)
+
+            job = backend.run(encode)
+            result = job.result()
+            outputstate = result.get_statevector(encode, decimals=3)
+            self.state_vectors.append(outputstate)
+
+        for i in range(len(self.state_vectors)):
+            self.vectors_data.append(state_visualization._bloch_multivector_data(self.state_vectors[i]))
+
+        self.vectors_data = pd.DataFrame(self.vectors_data)
+
+    def init_plots(self):
+        self.figs = []
+        self.axes = []
+        self.spheres = []
+
+        # Bloch sphere plot formatting
+        width, height = plt.figaspect(1 / 1)
+        for i in range(len(self.vectors_data.columns)):
+            fig = plt.figure(figsize=(width, height))
+            self.figs.append(fig)
+
+        for i in range(len(self.vectors_data.columns)):
+            axis = self.figs[i].add_subplot(projection='3d')
+            self.axes.append(axis)
+
+        colors = [['tab:blue'], ['tab:orange'], ['tab:green']]  # colors for three classes
+        markers = [['o'], ['s'], ['d']]
+        for i in range(len(self.vectors_data.columns)):
+            class_spheres = []
+            sphere_alpha = 0.2
+            frame_alpha = 0.2
+            xlabel = ['$x$', '']
+            ylabel = ['$y$', '']
+            zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
+            for j, c, m in zip(range(self.n_features), colors, markers):
+                b = Bloch(axes=self.axes[i])
+                b.sphere_alpha = sphere_alpha
+                b.frame_alpha = frame_alpha
+                b.xlabel = xlabel
+                b.ylabel = ylabel
+                b.zlabel = zlabel
+                sphere_alpha = 0
+                frame_alpha = 0
+                xlabel = ['', '']
+                ylabel = ['', '']
+                zlabel = ['', '']
+                b.point_marker = m
+                b.point_size = [20]
+                b.point_color = c
+                class_spheres.append(b)
+
+            self.spheres.append(class_spheres)
+
+        # sphere for the random point that will be highlighted
+        sphere_alpha = 0
+        frame_alpha = 0
+        xlabel = ['', '']
+        ylabel = ['', '']
+        zlabel = ['', '']
+        for i in range(len(self.vectors_data.columns)):
+            b = Bloch(axes=self.axes[i])
+            b.sphere_alpha = sphere_alpha
+            b.frame_alpha = frame_alpha
+            b.xlabel = xlabel
+            b.ylabel = ylabel
+            b.zlabel = zlabel
+            b.point_marker = ['o']
+            b.point_size = [30]
+            b.point_color = 'r'
+            self.spheres[i].append(b)
+
+    def add_data_points(self, random_point):
+        last_sphere_idx = self.labels.max() + 1
+        for i in range(len(self.spheres)):
+            for j in range(len(self.vectors_data)):
+                if j != random_point:
+                    self.spheres[i][self.labels[j]].add_points(self.vectors_data[i].iloc[j])
+
+            # the random point is added at the end, so it is above other points
+            self.spheres[i][last_sphere_idx].add_points(self.vectors_data[i].iloc[random_point])
+
+    def save_bloch_spheres(self, name):
+        i = 0
+        for c_spheres, fig in zip(self.spheres, self.figs):
+            for s in c_spheres:
+                s.show()
+            fig.savefig('img/mapping/{} {}'.format(name, i))
+            i += 1
+
+    # plots a scatter matrix highlighting a previously selected data point and using a different color
+    # for each class
+    def plot_data_points(self, random_point, feature_names, inverse_dict):
         fig, axs = plt.subplots(self.n_features, self.n_features)
         fig.set_figwidth(3 * self.n_features)
         fig.set_figheight(3 * self.n_features)
         plt.rcParams.update({'font.size': 22})
-        feature_names = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']
+        colors = ['tab:blue', 'tab:orange', 'tab:green']
         for i in range(self.n_features):
             for j in range(self.n_features):
                 if i == j:
-                    axs[i][j].hist(self.features[:, j])
+                    for k, c in zip(np.unique(self.labels), colors):
+                        axs[i][j].hist(self.features[np.where(self.labels == k), j][0],
+                                       color=c, label=inverse_dict[k], alpha=0.8)
                 else:
-                    # axs[i][j].scatter(self.features[:, j], self.features[:, i])
-                    axs[i][j].scatter(self.features[np.where(labels == 0), j],
-                                      self.features[np.where(labels == 0), i],
-                                      color='tab:blue')
-                    axs[i][j].scatter(self.features[np.where(labels == 1), j],
-                                      self.features[np.where(labels == 1), i],
-                                      color='tab:orange')
-                    axs[i][j].scatter(self.features[np.where(labels == 2), j],
-                                      self.features[np.where(labels == 2), i],
-                                      color='tab:green')
+                    for k, c in zip(np.unique(self.labels), colors):
+                        axs[i][j].scatter(self.features[np.where(self.labels == k), j],
+                                          self.features[np.where(self.labels == k), i])
                     axs[i][j].scatter(self.features[:, j][random_point],
-                                      self.features[:, i][random_point],
-                                      color='r')
+                                      self.features[:, i][random_point])
                     axs[i][j].set_aspect('equal', adjustable='datalim')
                 if j == 0:
                     axs[i][j].set_ylabel(feature_names[i])
                 if i == self.n_features - 1:
                     axs[i][j].set_xlabel(feature_names[j])
 
-        plt.savefig('img/feature_map/data_points')
-
-    # makes the circuit adding the feature map
-    def make_circuit(self):
-        self.circuit.compose(self.feature_map.decompose(), range(self.n_features), inplace=True)
-        self.circuit.draw(output='mpl')
-        plt.savefig('img/feature_map/feature_map')
-
-    # encodes the classical data and obtains the corresponding state vectors
-    def get_statevectors(self, random_point, meas=False):
-        # obtains the statevectors of the encoded features
-        state_vectors = self.encode()
-        self.plot_state_vector(state_vectors, meas, random_point)
-
-    # classical to quantum data encoding
-    def encode(self):
-        state_vectors = []
-
-        backend = Aer.get_backend('statevector_simulator')
-        # encodes every data point obtaining a state vector
-        for i in range(len(self.features)):
-            # print(features[i].tolist())
-            # binding of the parameters (features) to the circuit
-            encode = self.circuit.bind_parameters(self.features[i].tolist())
-
-            job = backend.run(encode)
-            result = job.result()
-            outputstate = result.get_statevector(encode, decimals=3)
-            state_vectors.append(outputstate)
-            # print(outputstate)
-
-        return state_vectors
+        axs[0][0].legend(bbox_to_anchor=(2*self.n_features/2, 1.5), loc='upper right',
+                         ncols=self.n_features, fontsize=15)
+        plt.savefig('img/mapping/data_points')
 
     # adds a measurement to the circuit
-    def add_measurement(self):
+    def add_measurement(self, circuit):
         meas = QuantumCircuit(self.n_features, self.n_features)
         meas.barrier(range(self.n_features))
         meas.measure(range(self.n_features), range(self.n_features))
 
-        self.circuit.compose(meas, range(self.n_features), inplace=True)
-        self.circuit.draw(output='mpl')
+        circuit.compose(meas, range(self.n_features), inplace=True)
+        circuit.draw(output='mpl')
         plt.savefig('img/feature_map/measurement')
-
-    # quantum circuit simulation
-    def run_simulation(self):
-        # backend for the quantum circuit simulator
-        backend_sim = Aer.get_backend('qasm_simulator')
-
-        # run simulation
-        job_sim = backend_sim.run(transpile(self.circuit, backend_sim), shots=1024)
-        result_sim = job_sim.result()
-        counts = result_sim.get_counts(self.circuit)
-        print(counts)
-
-        plot_histogram(counts)
-        plt.savefig('img/feature_map/sim_result')
-
-    # saves the bloch sphere representation of the state vector associated to the previously
-    # selected random point
-    @staticmethod
-    def plot_state_vector(state_vectors, meas, random_point):
-        state_vectors[random_point].draw(output='bloch')
-        if meas:
-            plt.savefig('img/feature_map/measured_state_vector')
-        else:
-            plt.savefig('img/feature_map/state_vector')

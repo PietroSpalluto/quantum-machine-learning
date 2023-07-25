@@ -16,7 +16,7 @@ qc_A = QuantumCircuit(1)
 qc_A.h(0)
 qc_A.rz(theta_param, 0)
 qc_A.draw(output='mpl')
-plt.savefig('img/mapping/circuitA')
+plt.savefig('img/mapping_example/circuitA')
 
 # Circuit B
 qc_B = QuantumCircuit(1)
@@ -24,7 +24,7 @@ qc_B.h(0)
 qc_B.rz(theta_param, 0)
 qc_B.rx(phi_param, 0)
 qc_B.draw(output='mpl')
-plt.savefig('img/mapping/circuitB')
+plt.savefig('img/mapping_example/circuitB')
 
 # Circuit C
 qc_C = QuantumCircuit(1)
@@ -33,7 +33,7 @@ qc_C.rz(theta_param, 0)
 qc_C.rx(phi_param, 0)
 qc_C.ry(lambda_param, 0)
 qc_C.draw(output='mpl')
-plt.savefig('img/mapping/circuitC')
+plt.savefig('img/mapping_example/circuitC')
 
 # Next we uniformly sample the parameter space for the two parameters theta and phi
 np.random.seed(0)
@@ -76,8 +76,8 @@ for i in range(num_param):
     b3.add_points(state_to_bloch(state_3))
 
 b1.show()
-fig1.savefig('img/mapping/mappingA')
+fig1.savefig('img/mapping_example/mappingA')
 b2.show()
-fig2.savefig('img/mapping/mappingB')
+fig2.savefig('img/mapping_example/mappingB')
 b3.show()
-fig3.savefig('img/mapping/mappingC')
+fig3.savefig('img/mapping_example/mappingC')
