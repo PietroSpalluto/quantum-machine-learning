@@ -95,7 +95,7 @@ for c in range(starting_conf, len(conf['feature_map'])):
     ansatz = conf['ansatz'][c]
     optimizer = conf['optimizer'][c]
 
-    print('testing configuration {}/{}'.format(starting_conf+1, len(conf['feature_map'])))
+    print('testing configuration {}/{}'.format(c+1, len(conf['feature_map'])))
     print('FEATURE MAP')
     print('name: {}'.format(feature_map.name))
     print('#parameters: {}'.format(feature_map.num_parameters))
