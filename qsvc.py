@@ -22,21 +22,39 @@ from QuantumEncoder import QuantumEncoder
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
-feature_names = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']
-label_name = 'Species'
+# feature_names = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']
+# label_name = 'Species'
+# n_features = len(feature_names)  # number of features
+# n_train = 10  # number of samples in the training set
+# n_test = 0.2  # number of samples in the test set
+#
+# data = pd.read_csv('data/Iris.csv')
+# # subset of the data representing the three classes
+# # data = pd.concat([data[0:10], data[50:60], data[100:110]])
+# features = data[feature_names]
+# # mapping of string to number
+# mapping_dict = {class_name: id for id, class_name in enumerate(data[label_name].unique())}
+# inverse_dict = {id: class_name for id, class_name in enumerate(data[label_name].unique())}
+# labels = data[label_name].map(mapping_dict)
+#
+# n_classes = len(labels.unique())  # number of classes (clusters)
+
+feature_names = ['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']
+label_name = 'species'
 n_features = len(feature_names)  # number of features
 n_train = 0.8  # number of samples in the training set
 n_test = 0.2  # number of samples in the test set
 
-data = pd.read_csv('data/Iris.csv')
-# subset of the data representing the three classes
-# data = pd.concat([data[0:10], data[50:60], data[100:110]])
-features = data[feature_names]
-# mapping of string to number
-mapping_dict = {class_name: id for id, class_name in enumerate(data[label_name].unique())}
-inverse_dict = {id: class_name for id, class_name in enumerate(data[label_name].unique())}
-labels = data[label_name].map(mapping_dict)
+data = sns.load_dataset('penguins')
+data = data.dropna()
+print(data.isnull().sum().sum())
+
+features = data[['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']]
+features['island'] = features['island'].copy().map({'Torgersen': 0, 'Biscoe': 1, 'Dream': 2})
+features['sex'] = features['sex'].copy().map({'Male': 0, 'Female': 1})
+labels = data['species'].map({'Adelie': 0, 'Chinstrap': 1, 'Gentoo': 2})
 
 n_classes = len(labels.unique())  # number of classes (clusters)
 
