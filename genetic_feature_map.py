@@ -46,7 +46,7 @@ train_x = pca.transform(train_x)
 test_x = pca.transform(test_x)
 
 W = 10
-MODE = "2local"
+MODE = '2local'
 QUBIT = 2
 FEATURE = 2
 
@@ -66,3 +66,4 @@ ga = GeneticAlgorithm(W, MODE, QUBIT, FEATURE, GENE, BIT, POPULATION, POOL_SIZE,
                       MUTATION_PROB, GENERATION, EARLY_STOP)
 
 ga.execute(0, 100, train_x, train_y, test_x, test_y)
+# ga.execute_pareto_front(0, [0.1, 100], train_x, train_y, test_x, test_y)
