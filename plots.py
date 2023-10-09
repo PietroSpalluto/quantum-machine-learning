@@ -14,6 +14,7 @@ import pandas as pd
 
 import joblib
 
+# dataset definition
 feature_names = ['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']
 label_name = 'species'
 n_features = len(feature_names)  # number of features
@@ -27,6 +28,7 @@ print(data.isnull().sum().sum())
 features = data[['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']]
 features['island'] = features['island'].copy().map({'Torgersen': 0, 'Biscoe': 1, 'Dream': 2})
 features['sex'] = features['sex'].copy().map({'Male': 0, 'Female': 1})
+# string to int mapping
 mapping_dict = {class_name: id for id, class_name in enumerate(data[label_name].unique())}
 inverse_dict = {id: class_name for id, class_name in enumerate(data[label_name].unique())}
 labels = data['species'].map(mapping_dict)
@@ -37,12 +39,14 @@ n_classes = len(labels.unique())  # number of classes (clusters)
 features = features.to_numpy()
 labels = labels.to_numpy()
 
+# train and test splitting
 X_train, X_test, y_train, y_test = train_test_split(features,
                                                     labels,
                                                     train_size=n_train,
                                                     test_size=n_test,
                                                     stratify=labels)
 
+# dimensionality reduction
 pca = PCA(n_components=2)
 pca.fit(X_train)
 X_train = pca.transform(X_train)
@@ -52,13 +56,13 @@ n_features = 2
 features = np.concatenate((X_train, X_test))
 labels = np.concatenate((y_train, y_test))
 
-# a random point to be represented as classical and quantum data
+# a random point is selected to be represented as classical and quantum data
 random_point = np.random.randint(len(data))
 
 # load the configurations
 conf = joblib.load('models/results')
 
-conf_df = pd.DataFrame(conf)[36:]
+conf_df = pd.DataFrame(conf)
 conf = {}
 for c in conf_df.columns:
     conf[c] = conf_df[c].values.tolist()
@@ -71,6 +75,7 @@ best_clf = conf['clf'][best_clf_idx]
 circuit = QuantumCircuit(n_features)
 circuit.compose(best_clf.feature_map.decompose(), range(n_features), inplace=True)
 
+# save scatter plot and Bloch spheres
 qe = QuantumEncoder(features, labels)
 qe.encode(circuit, [])
 qe.init_plots()

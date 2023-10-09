@@ -1,21 +1,15 @@
 import matplotlib.pyplot as plt
 import matplotlib
 import seaborn as sns
-from matplotlib.lines import Line2D
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import ConfusionMatrixDisplay, RocCurveDisplay, classification_report
 from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
 
 from sklearn.decomposition import PCA
 
 import numpy as np
-import pandas as pd
-import scipy
 
-import os
 import time
-import joblib
 
 np.random.seed(42)
 
@@ -48,11 +42,6 @@ X_train, X_test, y_train, y_test = train_test_split(features,
                                                     test_size=n_test,
                                                     stratify=labels)
 
-# scaler = StandardScaler()
-# scaler.fit(X_train)
-# X_train = scaler.transform(X_train)
-# X_test = scaler.transform(X_test)
-
 # for visualization purposes only
 pca = PCA(n_components=6)
 pca.fit(X_train)
@@ -69,12 +58,14 @@ plt.gcf().subplots_adjust(left=0.15)
 plt.savefig('img/svm/variance_retained')
 plt.clf()
 
+# dimensionality reduction
 pca = PCA(n_components=2)
 pca.fit(X_train)
 print('Explained variance: {}'.format(pca.explained_variance_ratio_))
 X_train = pca.transform(X_train)
 X_test = pca.transform(X_test)
 
+# classical SVM model training
 model = SVC(kernel='linear')
 print('training SVC...')
 start = time.time()
@@ -84,6 +75,7 @@ print('Training time: {}'.format(elapsed))
 score = model.score(X_test, y_test)
 print('testing score: {}'.format(score))
 
+# decision boundary plot
 X = np.concatenate((X_train, X_test))
 y = np.concatenate((y_train, y_test))
 # define bounds of the domain
@@ -122,6 +114,8 @@ plt.clf()
 
 y_pred = model.predict(X_test)
 y_score = model.decision_function(X_test)
+
+# classification metrics
 print(classification_report(y_test, y_pred))
 ConfusionMatrixDisplay.from_estimator(model, X_test, y_test)
 plt.title('Confusion Matrix')

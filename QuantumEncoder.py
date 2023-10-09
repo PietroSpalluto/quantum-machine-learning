@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-# Mapper to plot points distribution in the qubit after training
+# this class is used to map points from a n-dimensional space to a Hilbert space
 class QuantumEncoder:
     def __init__(self, features, labels):
         self.features = features
@@ -27,6 +27,12 @@ class QuantumEncoder:
 
     # classical to quantum data encoding
     def encode(self, circuit, var_params, measured=False):
+        """
+        Classical features are encoded to statevectors
+        :param circuit: encoding circuit
+        :param var_params: parameters of the variational circuit
+        :param measured: flag indicating if a circuit has a measurement
+        """
         self.state_vectors = []
         self.vectors_data = []
 
@@ -46,12 +52,16 @@ class QuantumEncoder:
             outputstate = result.get_statevector(encode, decimals=3)
             self.state_vectors.append(outputstate)
 
+        # statevectors are converted to be visualized in a Bloch sphere
         for i in range(len(self.state_vectors)):
             self.vectors_data.append(state_visualization._bloch_multivector_data(self.state_vectors[i]))
 
         self.vectors_data = pd.DataFrame(self.vectors_data)
 
     def init_plots(self):
+        """
+        3D Bloch spheres plot are initialized, one for each feature
+        """
         self.figs = []
         self.axes = []
         self.spheres = []
@@ -113,17 +123,25 @@ class QuantumEncoder:
             self.spheres[i].append(b)
 
     def add_data_points(self, random_point):
+        """
+        Add encoded data points to the bloch spheres
+        :param random_point: highlighted point
+        """
         last_sphere_idx = self.labels.max() + 1
         for i in range(len(self.spheres)):
             for j in range(len(self.vectors_data)):
                 self.spheres[i][self.labels[j]].add_points(self.vectors_data[i].iloc[j])
-                # if j != random_point:
-                #     self.spheres[i][self.labels[j]].add_points(self.vectors_data[i].iloc[j])
+                if j != random_point:
+                    self.spheres[i][self.labels[j]].add_points(self.vectors_data[i].iloc[j])
 
             # the random point is added at the end, so it is above other points
-            # self.spheres[i][last_sphere_idx].add_points(self.vectors_data[i].iloc[random_point])
+            self.spheres[i][last_sphere_idx].add_points(self.vectors_data[i].iloc[random_point])
 
     def save_bloch_spheres(self, name):
+        """
+        Save images or multiple images used to animate the Bloch sphere
+        :param name: name of the image
+        """
         i = 0
         for c_spheres, fig, ax in zip(self.spheres, self.figs, self.axes):
             for s in c_spheres:
@@ -132,14 +150,21 @@ class QuantumEncoder:
             # for angle in range(360):
             #     ax.view_init(20, angle)
             #     fig.savefig('img/mapping/{} {}/ {}'.format(name, i, angle))
+
             # for bloch sphere plot
             fig.savefig('img/mapping/{} {}'.format(name, i))
             i += 1
         plt.clf()
 
-    # plots a scatter matrix highlighting a previously selected data point and using a different color
-    # for each class
+    #
     def plot_data_points(self, random_point, feature_names, inverse_dict):
+        """
+        plots a scatter matrix highlighting a previously selected data point and using a different color
+        for each class
+        :param random_point: highlighted point
+        :param feature_names: names of the dataset features
+        :param inverse_dict: dictionary to convert label numbers into names
+        """
         if self.n_features > 2:
             fig, axs = plt.subplots(self.n_features, self.n_features)
             fig.set_figwidth(3 * self.n_features)
@@ -181,8 +206,11 @@ class QuantumEncoder:
         plt.savefig('img/mapping/data_points')
         plt.clf()
 
-    # adds a measurement to the circuit
     def add_measurement(self, circuit):
+        """
+        add a measurement to the circuit
+        :param circuit: input circuit
+        """
         meas = QuantumCircuit(self.n_features, self.n_features)
         meas.barrier(range(self.n_features))
         meas.measure(range(self.n_features), range(self.n_features))

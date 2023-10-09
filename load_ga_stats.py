@@ -84,7 +84,9 @@ with open('genetic_algorithm/statistics.pkl', 'rb') as file:
     cost = stats['Mean Pool Fitness']
     obj_gate_list = stats['Mean Pool Gate Complexity']
     obj_acc_list = stats['Mean Pool Accuracy']
+    pareto = stats['Pareto']
 
+# saves pareto front plot
 for g, plt_acc, plt_gate in zip(gen_save, plt_acc_save, plt_gate_save):
     plt.scatter(plt_acc, plt_gate, s=10, c="#4863A0", alpha=(g + 100 / 2) / (1.5 * 100))
 plt.savefig('img/genetic_algorithm/plot')
@@ -93,6 +95,7 @@ plt.clf()
 obj_x, obj_y1, obj_y2 = np.arange(len(obj_acc_list)), np.array(obj_gate_list), np.array(obj_acc_list)
 cost_x, cost_y = np.arange(len(obj_gate_list)), np.array(cost)
 
+# plots gate cost, accuracy and total fitness score
 plt.xlabel('Generation')
 plt.ylabel('Gate cost')
 plt.plot(obj_x+1, obj_y1, label="Gate cost", color="#4863A0")
@@ -117,14 +120,16 @@ plt.title('Fitness Value')
 plt.savefig('img/genetic_algorithm/fitness')
 plt.clf()
 
-del stats['Pareto']
 stats_df = pd.DataFrame(stats)
 # the best feature map is the first individual of the last population generated
 best_individual = pop[0]
+
+# the best feature map is saved
 best_feature_map, _, _, _ = generate_circuit_2local(best_individual, 2, 2)
 best_feature_map.draw(output='mpl')
 plt.savefig('img/genetic_algorithm/feature_map')
 
+# a random point is selected to be highlighted in the scatter plot and in the Bloch spheres
 random_point = np.random.randint(len(data))
 qe = QuantumEncoder(features, labels)
 qe.encode(best_feature_map, [])
@@ -133,6 +138,7 @@ qe.add_data_points(random_point)
 qe.save_bloch_spheres('fig_qsvm')
 qe.plot_data_points(random_point, feature_names, inverse_dict)
 
+# a QSVC model is fitted to data using the kernel obtained by the genetic algorithm
 kernel = FidelityQuantumKernel(feature_map=best_feature_map)
 # model_svc = SVC(kernel=kernel.evaluate)
 model_svc = QSVC(quantum_kernel=kernel)
@@ -145,6 +151,7 @@ print(score)
 y_pred = model_svc.predict(test_x)
 y_score = model_svc.decision_function(test_x)
 
+# classification metrics are obtained
 print(classification_report(test_y, y_pred))
 
 ConfusionMatrixDisplay.from_estimator(model_svc, test_x, test_y)
@@ -156,6 +163,7 @@ RocCurveDisplay.from_predictions(test_y, y_score[:, 1], pos_label=1, ax=ax, name
 RocCurveDisplay.from_predictions(test_y, y_score[:, 2], pos_label=2, ax=ax, name=f'{inverse_dict[2]} vs the rest')
 plt.savefig('img/genetic_algorithm/roc_curves_qsvm')
 
+# decision boundary plot (for quantum algorithms is very time consuming)
 X = np.concatenate((train_x, test_x))
 y = np.concatenate((train_y, test_y))
 # define bounds of the domain

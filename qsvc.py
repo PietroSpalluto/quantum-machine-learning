@@ -1,45 +1,22 @@
 import matplotlib.pyplot as plt
 from qiskit.primitives import Sampler
-from qiskit.algorithms.optimizers import SPSA, QNSPSA, GradientDescent, ADAM, COBYLA
-from qiskit.circuit.library import ZZFeatureMap, TwoLocal, PauliFeatureMap, NLocal, RealAmplitudes, EfficientSU2
-from qiskit.visualization import plot_histogram
-from qiskit import Aer, transpile, QuantumCircuit
+from qiskit.algorithms.optimizers import SPSA
+from qiskit.circuit.library import ZZFeatureMap
 from sklearn.model_selection import train_test_split
-from qiskit_machine_learning.algorithms.classifiers import VQC, QSVC, PegasosQSVC, NeuralNetworkClassifier
-from qiskit_machine_learning.neural_networks import SamplerQNN, EstimatorQNN
-from qiskit_machine_learning.kernels import FidelityQuantumKernel, TrainableFidelityQuantumKernel
+from qiskit_machine_learning.algorithms.classifiers import QSVC
+from qiskit_machine_learning.kernels import TrainableFidelityQuantumKernel
 from qiskit import QuantumCircuit
 from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.circuit import ParameterVector, Parameter
+from qiskit.circuit import Parameter
 from qiskit_machine_learning.utils.loss_functions import SVCLoss
 from qiskit_machine_learning.kernels.algorithms import QuantumKernelTrainer
 
-from VQCClassifier import VQCClassifier
+from sklearn.decomposition import PCA
+
 from OptimizerLog import OptimizerLog
-from ClassifierLog import ClassifierLog
-from OptimizerLog import OptimizerLog
-from QuantumEncoder import QuantumEncoder
 
 import numpy as np
-import pandas as pd
 import seaborn as sns
-
-# feature_names = ['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']
-# label_name = 'Species'
-# n_features = len(feature_names)  # number of features
-# n_train = 10  # number of samples in the training set
-# n_test = 0.2  # number of samples in the test set
-#
-# data = pd.read_csv('data/Iris.csv')
-# # subset of the data representing the three classes
-# # data = pd.concat([data[0:10], data[50:60], data[100:110]])
-# features = data[feature_names]
-# # mapping of string to number
-# mapping_dict = {class_name: id for id, class_name in enumerate(data[label_name].unique())}
-# inverse_dict = {id: class_name for id, class_name in enumerate(data[label_name].unique())}
-# labels = data[label_name].map(mapping_dict)
-#
-# n_classes = len(labels.unique())  # number of classes (clusters)
 
 feature_names = ['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']
 label_name = 'species'
@@ -69,7 +46,11 @@ X_train, X_test, y_train, y_test = train_test_split(features,
                                                     stratify=labels)
 
 # dimensionality reduction
-
+pca = PCA(n_components=2)
+pca.fit(X_train)
+train_x = pca.transform(X_train)
+test_x = pca.transform(X_test)
+n_features = 2
 
 # a random point to be represented as classical and quantum data
 random_point = np.random.randint(len(data))
@@ -108,9 +89,6 @@ print('optimizing quantum kernel...')
 results = trainer.fit(X_train, y_train)
 kernel = results.quantum_kernel
 
-# plot the optimized kernel
-# ...
-
 # save kernel matrices
 kernel_matrix_train = kernel.evaluate(x_vec=X_train)
 plt.clf()
@@ -124,6 +102,7 @@ plt.imshow(np.asmatrix(kernel_matrix_test), interpolation='nearest', origin='upp
 plt.title('Testing kernel matrix')
 plt.savefig('img/qsvm/kernel_matrix_test')
 
+# train the model
 qsvc = QSVC(quantum_kernel=kernel)
 print('training QSVC...')
 qsvc.fit(X_train, y_train)

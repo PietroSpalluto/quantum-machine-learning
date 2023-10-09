@@ -30,6 +30,15 @@ class GeneticAlgorithm:
         self.early_stop = early_stop
 
     def cost_func(self, acc, r, h, cnot, swap=0):
+        """
+        Fitness function is computed
+        :param acc: model accuracy
+        :param r: number of rotation gates
+        :param h: number of Hadamard gates
+        :param cnot: number of CNOT gates
+        :param swap: number of swap gates
+        :return: fitness function
+        """
         if acc == 0.0:
             acc = 0.01
         gate_cost = r + 2 * h + 5 * cnot + 11 * swap
@@ -37,6 +46,16 @@ class GeneticAlgorithm:
         return round(fit, 1)
 
     def calculate_fitness(self, pop, population, train_x, train_y, test_x, test_y):
+        """
+        Executes the genetic algorithms and computed the fitness function
+        :param pop: population
+        :param population: population size
+        :param train_x: train variables
+        :param train_y: train label
+        :param test_x: test variables
+        :param test_y: test label
+        :return: fitness, score values, number of rotation, CNOT, Hadamard and swap gates
+        """
         fitness, scores, qc_r, qc_h, qc_cnot, qc_swap = [], [], [], [], [], []
 
         for i in range(population):
@@ -50,6 +69,8 @@ class GeneticAlgorithm:
                 qc_i, r_i, h_i, cnot_i, swap_i = generate_circuit_2local_swap(pop[i], self.num_qubits,
                                                                               self.num_features)
 
+            # SVC using the quantum kernel computed from the feature map obtained by the individual of
+            # the population
             kernel = FidelityQuantumKernel(feature_map=qc_i)
             model = SVC(kernel=kernel.evaluate)
             model.fit(train_x, train_y)
@@ -68,6 +89,9 @@ class GeneticAlgorithm:
         return fitness, scores, qc_r, qc_h, qc_cnot, qc_swap
 
     def pareto_front(self, t_list):
+        """
+        Computes the pareto front
+        """
         pareto_index = []
         tt_list = t_list.copy()
 
@@ -87,6 +111,10 @@ class GeneticAlgorithm:
         return pareto_index
 
     def init_population(self):
+        """
+        Population initialization
+        :return: population with self.pop_size individuals
+        """
         if os.path.exists('genetic_algorithm/population.pkl'):
             with open('genetic_algorithm/population.pkl', 'rb') as file:
                 pop = pickle.load(file)
@@ -100,6 +128,10 @@ class GeneticAlgorithm:
 
     @staticmethod
     def load_stats():
+        """
+        Loads the statistics of the algorithm
+        :return: tuple of lists of statistics
+        """
         if os.path.exists('genetic_algorithm/statistics.pkl'):
             with open('genetic_algorithm/statistics.pkl', 'rb') as file:
                 stats = pickle.load(file)
@@ -151,6 +183,15 @@ class GeneticAlgorithm:
                 obj_gate_list, obj_acc_list, pareto_save)
 
     def execute(self, early_stop, threshold, train_x, train_y, test_x, test_y):
+        """
+        Executes the genetic algorithm
+        :param early_stop: early stop criteria
+        :param threshold: threshold criteria
+        :param train_x: train variables
+        :param train_y: train label
+        :param test_x: test variables
+        :param test_y: test label
+        """
         # load statistics
         (gen_save, plt_acc_save, plt_gate_save, fitness_save, score_save, qc_r_save, qc_h_save, qc_cnot_save,
          qc_swap_save, cost_pool_save, obj_gate_save, obj_acc_save, population_save, parents_save, cost,
@@ -167,6 +208,7 @@ class GeneticAlgorithm:
             fitness, score, qc_r, qc_h, qc_cnot, qc_swap, plt_acc, plt_gate = [], [], [], [], [], [], [], []
             cost_pool, obj_gate, obj_acc = 0, 0, 0
 
+            # saves score, fitness and number of gates
             score, fitness, qc_r, qc_h, qc_cnot, qc_swap = self.calculate_fitness(pop, self.pop_size,
                                                                                   train_x, train_y,
                                                                                   test_x, test_y)
@@ -180,6 +222,7 @@ class GeneticAlgorithm:
 
             end_time = time()
 
+            # gate cost complexity computation
             for i in range(self.pool_size):
                 cost_p = fitness[i]
                 if self.mode == "2local_swap":
@@ -198,6 +241,7 @@ class GeneticAlgorithm:
             obj_gate_save.append(obj_gate)
             obj_acc_save.append(obj_acc)
 
+            # early stop computation
             if cost_pool / self.pool_size < threshold:
                 threshold = cost_pool / self.pool_size
                 early_stop = 0
@@ -217,6 +261,7 @@ class GeneticAlgorithm:
             print('Accuracy:', score)
             print('Fitness:', fitness)
 
+            # stopping criteria
             if g == self.num_generations:
                 break
             if early_stop == self.early_stop:
@@ -224,12 +269,14 @@ class GeneticAlgorithm:
 
             parents = []
 
+            # parents for the next generation are selected
             for i in range(self.pool_size):
                 fitnessIndex = np.where(fitness == min(fitness))
                 parents.append(pop[fitnessIndex[0][0]])
                 del fitness[fitnessIndex[0][0]]
                 del pop[fitnessIndex[0][0]]
 
+            # offspring and mutations are computed
             for i in range(self.offspring_size):
                 ll, rr = np.random.randint(self.pool_size), np.random.randint(self.pool_size)
                 parent_left, parent_right = parents[ll], parents[rr]
@@ -277,6 +324,15 @@ class GeneticAlgorithm:
         plt.show()
 
     def execute_pareto_front(self, early_stop, threshold, train_x, train_y, test_x, test_y):
+        """
+        Executes the genetic algorithm but using the pareto front to evaluate the fitness function
+        :param early_stop: early stop criteria
+        :param threshold: threshold criteria
+        :param train_x: train variables
+        :param train_y: train label
+        :param test_x: test variables
+        :param test_y: test label
+        """
         # load statistics
         (gen_save, plt_acc_save, plt_gate_save, fitness_save, score_save, qc_r_save, qc_h_save, qc_cnot_save,
          qc_swap_save, _, obj_gate_save, obj_acc_save, population_save, parents_save, cost,
@@ -416,4 +472,12 @@ class GeneticAlgorithm:
 
     @staticmethod
     def cost_gate(r, h, cnot, swap=0):
+        """
+        Computes cost gate complexity
+        :param r: number of rotation gates
+        :param h: number of Hadamard gates
+        :param cnot: number of CNOT gates
+        :param swap: number of swap gates
+        :return: gate cost
+        """
         return r + 2 * h + 5 * cnot + 11 * swap

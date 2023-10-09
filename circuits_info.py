@@ -1,11 +1,11 @@
-from qiskit.circuit.library import ZZFeatureMap, TwoLocal, PauliFeatureMap, NLocal, RealAmplitudes, EfficientSU2
+from qiskit.circuit.library import ZZFeatureMap, TwoLocal, PauliFeatureMap, RealAmplitudes, EfficientSU2
 import matplotlib.pyplot as plt
 
 n_features = 2
 
+# feature map and ansatz definition
 feature_map_zz_1 = ZZFeatureMap(n_features, reps=1)
 feature_map_zz_3 = ZZFeatureMap(n_features, reps=3)
-# feature_map_pauli = PauliFeatureMap(n_features, reps=1, paulis=['ZZ', 'ZX', 'ZY'])  # same as ZZFeatureMap
 feature_map_pauli = PauliFeatureMap(n_features, reps=1, paulis=['ZZ', 'ZX', 'ZY', 'XY'])
 
 ansatz_tl_3 = TwoLocal(n_features, ['ry', 'rz'], 'cz', reps=3)
@@ -49,6 +49,7 @@ for fm in feature_maps:
             print('gates: {}'.format(dict(a.count_ops())))
             print('#gates: {}'.format(sum(list(dict(a.count_ops()).values()))))
             print('depth: {}'.format(a.depth()))
+            # merges feature map and ansatz to make the complete circuit
             circuit = fm.compose(a)
             print(circuit.draw())
             print('#parameters: {}'.format(circuit.num_parameters))

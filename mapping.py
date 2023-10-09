@@ -6,7 +6,7 @@ from qiskit.visualization.bloch import Bloch
 from qiskit.quantum_info import Statevector
 from qiskit.circuit import QuantumCircuit, Parameter
 
-# First, we need to define the circuits:
+# script used to generate Bloch spheres only for visualization purposes
 theta_param = Parameter('θ')
 phi_param = Parameter('Φ')
 lambda_param = Parameter('λ')

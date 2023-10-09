@@ -1,6 +1,4 @@
-from matplotlib import pyplot as plt
-
-
+# class used to save the classifier progression
 class ClassifierLog:
     def __init__(self):
         self.counts = []

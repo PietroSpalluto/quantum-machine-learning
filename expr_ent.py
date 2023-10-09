@@ -6,6 +6,7 @@ import scipy as sp
 
 import numpy as np
 
+# functions to compute expressibility and entangling capability of an ansatz
 
 def random_unitary(N):
     """
@@ -83,6 +84,7 @@ def meyer_wallach(circuit, num_qubits, size, sample=1024):
     return 2*np.sum(res).real/sample
 
 
+# different circuits are used as ansatz
 def two_local(params, num_qubits):
     ansatz = TwoLocal(num_qubits, ['ry', 'rz'], 'cz', reps=3)
     ansatz = ansatz.bind_parameters(params)
@@ -104,6 +106,7 @@ def efficient_su2(params, num_qubits):
     return ansatz
 
 
+# printing resulting Expr and Ent
 num_qubits = 2
 shots = 8192
 

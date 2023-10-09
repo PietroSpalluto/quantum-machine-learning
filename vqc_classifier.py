@@ -20,6 +20,7 @@ import joblib
 
 np.random.seed(42)
 
+# dataset definition
 feature_names = ['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']
 label_name = 'species'
 n_features = len(feature_names)  # number of features
@@ -41,25 +42,27 @@ n_classes = len(labels.unique())  # number of classes (clusters)
 features = features.to_numpy()
 labels = labels.to_numpy()
 
+# train and test splitting
 X_train, X_test, y_train, y_test = train_test_split(features,
                                                     labels,
                                                     train_size=n_train,
                                                     test_size=n_test,
                                                     stratify=labels)
 
+# dimensionality reduction
 pca = PCA(n_components=2)
 pca.fit(X_train)
 X_train = pca.transform(X_train)
 X_test = pca.transform(X_test)
 n_features = 2
 
-# a random point to be represented as classical and quantum data
+# a random point is selected to be represented as classical and quantum data
 random_point = np.random.randint(len(data))
 
 # Sampler
 sampler = Sampler()
 
-# Feature maps
+# Feature maps are created
 feature_map_zz_1 = ZZFeatureMap(n_features, reps=1)
 feature_map_zz_3 = ZZFeatureMap(n_features, reps=3)
 # feature_map_pauli = PauliFeatureMap(n_features, reps=1, paulis=['ZZ', 'ZX', 'ZY'])  # same as ZZFeatureMap
@@ -73,20 +76,23 @@ pop = np.array([[0, 1, 0, 1, 1, 1],
                 [1, 0, 1, 0, 0, 0],
                 [1, 1, 1, 0, 0, 1],
                 [1, 0, 1, 0, 0, 0]])
+# generating feature map from genes obtained with the genetic algorithm
 custom_feature_map, _, _, _ = generate_circuit_2local(pop, n_features, n_features)
 
-# Ansatze
+# Ansatze are created
 ansatz_tl_3 = TwoLocal(n_features, ['ry', 'rz'], 'cz', reps=3)
 ansatz_ra_3 = RealAmplitudes(num_qubits=n_features, reps=3)
 ansatz_esu2 = EfficientSU2(n_features, su2_gates=['rx', 'y'], entanglement='circular', reps=1)
 ansatz_nl = NLocal(n_features, reps=3)
 
+# lists of feature maps and ansatze to be used
 feature_maps = [feature_map_zz_1, feature_map_zz_3, feature_map_pauli, custom_feature_map]
 ansatze = [ansatz_ra_3, ansatz_tl_3, ansatz_esu2]
 
 # make configurations
 conf = {'feature_map': [], 'ansatz': [], 'optimizer': [],
         'log_loss': [], 'clf': [], 'score': [], 'training_time(s)': []}
+
 for feature_map in feature_maps:
     for ansatz in ansatze:
         # Optimizers, some of them need an ansatz first
@@ -117,6 +123,7 @@ for c in range(starting_conf, len(conf['feature_map'])):
     ansatz = conf['ansatz'][c]
     optimizer = conf['optimizer'][c]
 
+    # print configuration info
     print('testing configuration {}/{}'.format(c+1, len(conf['feature_map'])))
     print('FEATURE MAP')
     print('name: {}'.format(feature_map.name))
@@ -135,6 +142,7 @@ for c in range(starting_conf, len(conf['feature_map'])):
     clf_log = ClassifierLog()
     initial_point = np.random.random(ansatz.num_parameters)
     # initial_point = None
+    # the classifier it the Variational Quantum Classifier
     clf = VQC(sampler=sampler,
               feature_map=feature_map,
               ansatz=ansatz,

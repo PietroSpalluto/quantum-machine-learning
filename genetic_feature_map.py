@@ -5,6 +5,11 @@ from GeneticAlgorithm import GeneticAlgorithm
 
 import seaborn as sns
 
+import numpy as np
+
+np.random.seed(42)
+
+# dataset definition
 feature_names = ['island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex']
 label_name = 'species'
 n_features = len(feature_names)  # number of features
@@ -34,17 +39,20 @@ n_classes = len(labels.unique())  # number of classes (clusters)
 features = features.to_numpy()
 labels = labels.to_numpy()
 
+# train and test splitting
 train_x, test_x, train_y, test_y = train_test_split(features,
                                                     labels,
                                                     train_size=n_train,
                                                     test_size=n_test,
                                                     stratify=labels)
 
+# dimensionality reduction
 pca = PCA(n_components=2)
 pca.fit(train_x)
 train_x = pca.transform(train_x)
 test_x = pca.transform(test_x)
 
+# parameters initialization for the genetic algorithm
 W = 10
 MODE = '2local'
 QUBIT = 2

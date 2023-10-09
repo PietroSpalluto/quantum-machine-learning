@@ -4,6 +4,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 
+# functions to generate circuit from and individual expressed as genes during the genetic algorithm
 def generate_circuit_paper(genes, qubit, parameter):
     i, q = 0, 0
     qc_r, qc_h, qc_cnot = 0, 0, 0
